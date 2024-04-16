@@ -17,6 +17,7 @@ import { hexStringEquals } from '@eth-optimism/core-utils'
 import l1StandardBridgeArtifact from '@eth-optimism/contracts-bedrock/forge-artifacts/L1StandardBridge.sol/L1StandardBridge.json'
 import l2StandardBridgeArtifact from '@eth-optimism/contracts-bedrock/forge-artifacts/L2StandardBridge.sol/L2StandardBridge.json'
 import optimismMintableERC20 from '@eth-optimism/contracts-bedrock/forge-artifacts/OptimismMintableERC20.sol/OptimismMintableERC20.json'
+import legacyMintableERC20 from '@eth-optimism/contracts-bedrock/forge-artifacts/LegacyMintableERC20.sol/LegacyMintableERC20.json'
 
 import { CrossChainMessenger } from '../cross-chain-messenger'
 import {
@@ -161,6 +162,11 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
       optimismMintableERC20.abi,
       this.messenger.l2Provider
     )
+    const legacyContract = new Contract(
+      toAddress(l2Token),
+      legacyMintableERC20.abi,
+      this.messenger.l2Provider
+    )
     // Don't support ETH deposits or withdrawals via this bridge.
     if (
       hexStringEquals(toAddress(l1Token), ethers.constants.AddressZero) ||
@@ -170,7 +176,10 @@ export class StandardBridgeAdapter implements IBridgeAdapter {
     }
 
     // Make sure the L1 token matches.
-    const remoteL1Token = await contract.l1Token()
+    const newRemoteL1Token = await contract.remoteToken()
+    const legacyRemoteL1Token = await legacyContract.l1Token()
+    const remoteL1Token = newRemoteL1Token || legacyRemoteL1Token;
+    console.log(remoteL1Token);
 
     if (!hexStringEquals(remoteL1Token, toAddress(l1Token))) {
       return false
